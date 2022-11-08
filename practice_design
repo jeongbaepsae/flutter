@@ -1,0 +1,61 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(home: MainPage());
+  }
+}
+
+class MainPage extends StatelessWidget {
+  const MainPage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ClipOval(
+                child: GestureDetector(
+                  onTap: () {
+                    print("move to miso");
+                  },
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.transparent,
+                    child: Image.network(
+                        'https://image.rocketpunch.com/company/13491/miso_logo_1583373473.png?s=400x400&t=inside'),
+                  ),
+                ),
+              ),
+              SizedBox(width: 45),
+              ClipOval(
+                child: GestureDetector(
+                  onTap: () {
+                    print("move to starbucks");
+                  },
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.transparent,
+                    child: Image.network(
+                      'https://t1.daumcdn.net/cfile/tistory/99857F4F5E738F472F',
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
