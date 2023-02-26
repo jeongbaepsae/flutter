@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sscc_talk/services/auth_service.dart';
 
 /*
 - 데이터베이스와 연동하기
@@ -22,55 +24,435 @@ class _NoticePageState extends State<NoticePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          "공 지 사 항",
-          style: TextStyle(
-            color: Colors.black,
-          ),
-        ),
-        centerTitle: true,
-        backgroundColor: Colors.white,
-        elevation: 2,
+    return Consumer<AuthService>(builder: (context, authService, child) {
+      final user = authService.currentUser();
+      Future<void> _update(DocumentSnapshot documentSnapshot) async {
+        titleController.text = documentSnapshot['title'];
+        contentController.text = documentSnapshot['content'];
 
-        /// 글 쓰기 버튼
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/notice/write_notice');
-            },
-            icon: Icon(Icons.edit),
-            color: Colors.black,
-            iconSize: 32,
-          ),
-        ],
-      ),
-      body: StreamBuilder(
-        stream: noticeList.snapshots(),
-        builder: (BuildContext context,
-            AsyncSnapshot<QuerySnapshot> streamSnapshot) {
-          if (streamSnapshot.hasData) {
-            return ListView.builder(
-              itemCount: streamSnapshot.data!.docs.length,
-              itemBuilder: (context, index) {
-                final DocumentSnapshot documentSnapshot =
-                    streamSnapshot.data!.docs[index];
-                return Card(
-                  child: ListTile(
-                    title: Text(documentSnapshot['title']),
-                    subtitle: Text(documentSnapshot['content']),
-                  ),
-                );
-              },
-              // separatorBuilder: ((context, index) {
-              //   return Divider();
-              // }),
+        await showModalBottomSheet(
+          isScrollControlled: true,
+          context: context,
+          builder: (BuildContext context) {
+            return SizedBox(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: 20,
+                  left: 20,
+                  right: 20,
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: titleController,
+                      keyboardType: TextInputType.text,
+                      decoration: InputDecoration(labelText: 'title'),
+                    ),
+                    TextField(
+                      controller: contentController,
+                      keyboardType: TextInputType.text,
+                      decoration: InputDecoration(labelText: 'content'),
+                    ),
+                    SizedBox(
+                      height: 20,
+                    ),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final String title = titleController.text;
+                        final String content = contentController.text;
+                        final userId = user!.uid;
+                        await noticeList.doc(documentSnapshot.id).update({
+                          "title": title,
+                          "content": content,
+                          "uid": userId
+                        });
+                        titleController.text = "";
+                        contentController.text = "";
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('update'),
+                    ),
+                  ],
+                ),
+              ),
             );
-          }
-          return Center(child: CircularProgressIndicator());
-        },
-      ),
-    );
+          },
+        );
+      }
+
+      Future<void> _delete(String postListId) async {
+        await noticeList.doc(postListId).delete();
+      }
+
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            "공 지 사 항",
+            style: TextStyle(
+              color: Colors.black,
+            ),
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.white,
+          elevation: 2,
+
+          /// 글 쓰기 버튼
+          actions: [
+            IconButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/notice/write_notice');
+              },
+              icon: Icon(Icons.edit),
+              color: Colors.black,
+              iconSize: 32,
+            ),
+          ],
+        ),
+        body: StreamBuilder(
+          stream: noticeList.snapshots(),
+          builder: (BuildContext context,
+              AsyncSnapshot<QuerySnapshot> streamSnapshot) {
+            if (streamSnapshot.hasData) {
+              return ListView.builder(
+                itemCount: streamSnapshot.data!.docs.length,
+                itemBuilder: (context, index) {
+                  final DocumentSnapshot documentSnapshot =
+                      streamSnapshot.data!.docs[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text(documentSnapshot['title']),
+                      subtitle: Text(documentSnapshot['content']),
+                      trailing: SizedBox(
+                        width: 100,
+                        child: Row(
+                          children: [
+                            IconButton(
+                              onPressed: () {
+                                _update(documentSnapshot);
+                              },
+                              icon: Icon(Icons.edit),
+                            ),
+                            IconButton(
+                              onPressed: () {
+                                _delete(documentSnapshot.id);
+                              },
+                              icon: Icon(Icons.delete),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+                // separatorBuilder: ((context, index) {
+                //   return Divider();
+                // }),
+              );
+            }
+            return Center(child: CircularProgressIndicator());
+          },
+        ),
+      );
+    });
   }
 }
+
+// class NoticeBox extends StatefulWidget {
+//   CollectionReference noticeList =
+//       FirebaseFirestore.instance.collection('notice');
+//   NoticeBox({
+//     Key? key,
+//     required this.title,
+//     required this.content,
+//     //required this.date,
+//   }) : super(key: key);
+
+//   dynamic title;
+//   dynamic content;
+//   //final dynamic date;
+
+//   @override
+//   State<NoticeBox> createState() => _NoticeBoxState();
+// }
+
+// class _NoticeBoxState extends State<NoticeBox> {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Padding(
+//       padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+//       child: Column(
+//         children: [
+//           Text(
+//             DocumentSnapshot 
+//             style: TextStyle(fontSize: 20),
+//           ),
+//           //Text(),
+//           //Text(widget.date),
+//         ],
+//       ),
+//     );
+//   }
+// }
+// return ListView.builder(
+//                 itemCount: streamSnapshot.data!.docs.length,
+//                 itemBuilder: (context, index) {
+//                   final DocumentSnapshot documentSnapshot =
+//                       streamSnapshot.data!.docs[index];
+//                   return NoticeBox(
+//                     title: Text(documentSnapshot['title']),
+//                     content: Text(documentSnapshot['content']),
+//                   );
+//                 },
+//               );
+
+// return ListView.separated(
+//         itemCount: noticeList.length,
+//         itemBuilder: (context, index) {
+//           final post = posts[index];
+//           final title = post['title'] ?? "Title";
+//           final content = post['content'] ?? "Content";
+//           final date = post['date'] ?? "2000/01/01 00:00";
+//           return NoticeBox(title: title, content: content, date: date);
+//         },
+//         separatorBuilder: (context, index) {
+//           return Divider();
+//         },
+//       ),
+
+// class _FeedState extends State<Feed> {
+//   bool isChecked = false; // 확인 여부
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Padding(
+//       padding: const EdgeInsets.fromLTRB(25, 10, 25, 0),
+//       child: Column(
+//         crossAxisAlignment: CrossAxisAlignment.start,
+//         children: [
+//           /// 제목
+//           Padding(
+//             padding: const EdgeInsets.all(8.0),
+//             child: Text(
+//               widget.title,
+//               style: TextStyle(
+//                 fontWeight: FontWeight.bold,
+//               ),
+//             ),
+//           ),
+
+//           /// 설명
+//           Padding(
+//             padding: const EdgeInsets.all(8.0),
+//             child: Text(
+//               widget.content,
+//             ),
+//           ),
+
+//           /// 날짜
+//           Padding(
+//             padding: const EdgeInsets.all(8.0),
+//             child: Text(
+//               widget.date,
+//               style: TextStyle(
+//                 color: Colors.grey,
+//               ),
+//             ),
+//           ),
+
+//           /// 아이콘
+//           Row(
+//             children: [
+//               /// 읽음 표시
+//               IconButton(
+//                 icon: Icon(
+//                   CupertinoIcons.checkmark,
+//                   color: isChecked ? Colors.blue : Colors.black,
+//                 ),
+//                 onPressed: () {
+//                   setState(() {
+//                     isChecked = !isChecked;
+//                   });
+//                 },
+//               ),
+
+//               /// 댓글
+//               IconButton(
+//                 icon: Icon(CupertinoIcons.chat_bubble, color: Colors.black),
+//                 onPressed: () {
+//                   showDialog(
+//                     context: context,
+//                     builder: (context) {
+//                       return CommentUI();
+//                     },
+//                   );
+//                 },
+//               ),
+//               Spacer(),
+
+//               /// 삭제
+//               IconButton(
+//                 icon: Icon(CupertinoIcons.delete, color: Colors.black),
+//                 onPressed: () {
+//                   deletePost(context);
+//                 },
+//               ),
+//             ],
+//           ),
+//           Divider()
+//         ],
+//       ),
+//     );
+//   }
+// }
+
+// /// 글쓰기 화면
+// class Messagetext extends StatelessWidget {
+//   const Messagetext({Key? key}) : super(key: key);
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Scaffold(
+//       appBar: AppBar(
+//         backgroundColor: Colors.white,
+//         centerTitle: true,
+//         elevation: 1,
+//         iconTheme: IconThemeData(color: Colors.black),
+//         title: Text(
+//           "SSCC TALK",
+//           style: TextStyle(
+//             fontSize: 18,
+//             color: Colors.black,
+//             fontWeight: FontWeight.bold,
+//           ),
+//         ),
+//       ),
+//       body: SafeArea(
+//         child: SingleChildScrollView(
+//           padding: const EdgeInsets.all(25),
+//           child: Column(
+//             crossAxisAlignment: CrossAxisAlignment.start,
+//             children: [
+//               Text(
+//                 "글쓰기",
+//                 style: TextStyle(
+//                   fontWeight: FontWeight.w900,
+//                   fontSize: 28,
+//                 ),
+//               ),
+//               SizedBox(height: 15),
+
+//               /// 제목
+//               SizedBox(
+//                 height: 65,
+//                 width: 500,
+//                 child: TextField(
+//                   keyboardType: TextInputType.multiline,
+//                   maxLines: null,
+//                   obscureText: false,
+//                   maxLength: 30,
+//                   decoration: InputDecoration(
+//                       hintText: "제목",
+//                       counterText: '',
+//                       focusedBorder: UnderlineInputBorder(
+//                           borderSide: BorderSide(color: Colors.black))),
+//                 ),
+//               ),
+
+//               /// 내용
+//               SizedBox(
+//                 width: 500,
+//                 child: TextField(
+//                   keyboardType: TextInputType.multiline,
+//                   maxLines: null,
+//                   obscureText: false,
+//                   decoration: InputDecoration(
+//                     hintText: "내용",
+//                     focusedBorder: UnderlineInputBorder(
+//                       borderSide: BorderSide(color: Colors.black),
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//               SizedBox(height: 30),
+
+//               /// 작성하기 버튼
+//               Center(
+//                 child: SizedBox(
+//                   width: 200,
+//                   height: 40,
+//                   child: ElevatedButton(
+//                     onPressed: () {
+//                       Navigator.pop(context);
+//                     },
+//                     style: ElevatedButton.styleFrom(
+//                         backgroundColor: sscctalkPrimaryColor, elevation: 0),
+//                     child: Text(
+//                       "작성하기",
+//                       style: TextStyle(
+//                         color: Colors.black,
+//                         fontSize: 15,
+//                         fontWeight: FontWeight.bold,
+//                       ),
+//                     ),
+//                   ),
+//                 ),
+//               ),
+//             ],
+//           ),
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+// Future<dynamic> deletePost(BuildContext context) {
+//   return showDialog(
+//     context: context,
+//     builder: (BuildContext context) => AlertDialog(
+//       content: Text(
+//         "정말 삭제 하시겠어요?",
+//         style: TextStyle(fontSize: 16),
+//       ),
+//       actions: [
+//         /// 네
+//         ElevatedButton(
+//           style: ButtonStyle(
+//             backgroundColor: MaterialStateProperty.all<Color>(
+//               Colors.white,
+//             ),
+//             elevation: MaterialStateProperty.all<double>(0),
+//           ),
+//           onPressed: () => Navigator.of(context).pop(),
+//           child: Text(
+//             '네',
+//             style: TextStyle(
+//               fontSize: 15,
+//               color: Colors.red,
+//             ),
+//           ),
+//         ),
+
+//         /// 아니오
+//         ElevatedButton(
+//           style: ButtonStyle(
+//             backgroundColor: MaterialStateProperty.all<Color>(
+//               Colors.white,
+//             ),
+//             elevation: MaterialStateProperty.all<double>(0),
+//           ),
+//           onPressed: () => Navigator.of(context).pop(),
+//           child: Text(
+//             '아니오',
+//             style: TextStyle(
+//               fontSize: 15,
+//               color: Colors.black,
+//             ),
+//           ),
+//         ),
+//       ],
+//     ),
+//   );
+// }
