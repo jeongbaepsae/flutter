@@ -1,0 +1,77 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sscc_talk/services/auth_service.dart';
+
+class WriteNoticePage extends StatefulWidget {
+  const WriteNoticePage({super.key});
+
+  @override
+  State<WriteNoticePage> createState() => _WriteNoticePageState();
+}
+
+class _WriteNoticePageState extends State<WriteNoticePage> {
+  CollectionReference noticeList =
+      FirebaseFirestore.instance.collection('notice');
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController contentController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthService>(builder: (context, authService, child) {
+      final user = authService.currentUser();
+
+      Future<void> _create() async {
+        final String title = titleController.text;
+        final String content = contentController.text;
+        final userId = user!.uid;
+        await noticeList.add(
+          {
+            'title': title,
+            'content': content,
+            'uid': userId,
+            // 'date': TimeStamp.now(),
+          },
+        );
+        titleController.text = '';
+        contentController.text = '';
+        Navigator.of(context).pop();
+      }
+
+      return Scaffold(
+        appBar: AppBar(
+          title: Text(
+            "글 쓰 기",
+            style: TextStyle(color: Colors.black),
+          ),
+          centerTitle: true,
+          backgroundColor: Colors.white,
+          iconTheme: IconThemeData(color: Colors.black),
+        ),
+        body: Center(
+          child: Column(
+            children: [
+              TextField(
+                controller: titleController,
+                keyboardType: TextInputType.text,
+                decoration: InputDecoration(labelText: 'title'),
+              ),
+              TextField(
+                controller: contentController,
+                keyboardType: TextInputType.text,
+                decoration: InputDecoration(labelText: 'content'),
+              ),
+              OutlinedButton(
+                onPressed: () {
+                  _create();
+                },
+                child: Text('등록'),
+              ),
+            ],
+          ),
+        ),
+      );
+    });
+  }
+}
