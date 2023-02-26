@@ -1,0 +1,76 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+
+/*
+- 데이터베이스와 연동하기
+- 글을 쓰면 내용이 데이터베이스에 올라가고 목록으로 돌아오기
+*/ //네,,,,,,,,,,,,,,
+
+class NoticePage extends StatefulWidget {
+  const NoticePage({super.key});
+
+  @override
+  State<NoticePage> createState() => _NoticePageState();
+}
+
+class _NoticePageState extends State<NoticePage> {
+  CollectionReference noticeList =
+      FirebaseFirestore.instance.collection('notice');
+
+  final TextEditingController titleController = TextEditingController();
+  final TextEditingController contentController = TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          "공 지 사 항",
+          style: TextStyle(
+            color: Colors.black,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Colors.white,
+        elevation: 2,
+
+        /// 글 쓰기 버튼
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.pushNamed(context, '/notice/write_notice');
+            },
+            icon: Icon(Icons.edit),
+            color: Colors.black,
+            iconSize: 32,
+          ),
+        ],
+      ),
+      body: StreamBuilder(
+        stream: noticeList.snapshots(),
+        builder: (BuildContext context,
+            AsyncSnapshot<QuerySnapshot> streamSnapshot) {
+          if (streamSnapshot.hasData) {
+            return ListView.builder(
+              itemCount: streamSnapshot.data!.docs.length,
+              itemBuilder: (context, index) {
+                final DocumentSnapshot documentSnapshot =
+                    streamSnapshot.data!.docs[index];
+                return Card(
+                  child: ListTile(
+                    title: Text(documentSnapshot['title']),
+                    subtitle: Text(documentSnapshot['content']),
+                  ),
+                );
+              },
+              // separatorBuilder: ((context, index) {
+              //   return Divider();
+              // }),
+            );
+          }
+          return Center(child: CircularProgressIndicator());
+        },
+      ),
+    );
+  }
+}
